@@ -2,9 +2,8 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<title>☔ Yağmur Panosu + ✓ Checklist</title>
+<title>☔ Yağmur Panosu</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <style>
   :root{--bg:#0d1020;--card:#171b30;--card2:#222845;--txt:#eef1ff;--sub:#8b93b8}
   *{box-sizing:border-box}
@@ -38,41 +37,6 @@
   #alt{max-width:1220px;margin:10px auto 0;font-size:11px;color:var(--sub)}
   .ilce{cursor:pointer}
   @media(max-width:1250px){.grid{grid-template-columns:1fr}.temp,.mapcol{grid-column:1;grid-row:auto}}
-
-  /* ===== CHECKLIST (koyu tema, #checklist altında kapsüllü) ===== */
-  #checklist{grid-column:1/-1;background:var(--card);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;max-height:560px}
-  #checklist .ck-head{padding:14px 20px;border-bottom:1px solid var(--card2);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-  #checklist .ck-head h2{margin:0;font-size:16px;font-weight:700;color:#38bdf8}
-  #checklist .progress-wrap{display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-end;min-width:220px}
-  #checklist .progress-bar{flex:1;max-width:180px;height:8px;background:var(--card2);border-radius:99px;overflow:hidden}
-  #checklist .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#38bdf8,#10b981);border-radius:99px;transition:width .3s ease}
-  #checklist #progressText{font-size:13px;color:var(--sub);white-space:nowrap}
-  #checklist .add-row{display:flex;gap:8px;padding:14px 20px 8px}
-  #checklist .add-row input[type=text]{flex:1;padding:10px 14px;font:inherit;font-size:14px;border:1px solid var(--card2);border-radius:10px;outline:none;background:var(--bg);color:var(--txt)}
-  #checklist .add-row input[type=text]:focus{border-color:#38bdf8;box-shadow:0 0 0 3px rgba(56,189,248,.15)}
-  #checklist .btn{padding:9px 14px;font:inherit;font-size:13px;border:0;background:var(--card2);color:var(--txt);border-radius:10px;cursor:pointer;white-space:nowrap;transition:filter .15s}
-  #checklist .btn:hover{filter:brightness(1.25)}
-  #checklist .btn:active{transform:translateY(1px)}
-  #checklist .btn.primary{background:#38bdf8;color:#10142a;font-weight:700}
-  #checklist .toolbar{display:flex;gap:8px;padding:6px 20px 12px;flex-wrap:wrap;border-bottom:1px solid var(--card2)}
-  #checklist .list-wrap{flex:1;overflow-y:auto;min-height:120px}
-  #checklist table{width:100%;border-collapse:collapse;font-size:14px}
-  #checklist thead th{position:sticky;top:0;background:var(--card);z-index:1;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--sub);padding:9px 12px;border-bottom:1px solid var(--card2)}
-  #checklist tbody td{padding:9px 12px;border-bottom:1px solid var(--card2);vertical-align:middle}
-  #checklist tbody tr:hover{background:rgba(255,255,255,.03)}
-  #checklist tbody tr.done .col-gorev{color:var(--sub);text-decoration:line-through}
-  #checklist .col-durum{width:38px;text-align:center}
-  #checklist .col-durum input[type=checkbox]{width:18px;height:18px;accent-color:#38bdf8;cursor:pointer;vertical-align:middle}
-  #checklist .col-ekl,#checklist .col-tam{width:132px;color:var(--sub);font-size:12.5px;white-space:nowrap}
-  #checklist .col-sil{width:44px;text-align:center}
-  #checklist .del{border:none;background:transparent;color:var(--sub);font-size:20px;line-height:1;cursor:pointer;border-radius:8px;width:30px;height:30px}
-  #checklist .del:hover{background:rgba(239,68,68,.15);color:#ef4444}
-  #checklist .empty{display:none;padding:40px 20px;text-align:center;color:var(--sub);font-size:14px}
-  #checklist .empty.show{display:block}
-  #checklist .ck-foot{padding:9px 20px;font-size:12px;color:var(--sub);border-top:1px solid var(--card2)}
-  @media(max-width:1250px){#checklist{grid-column:1}}
-  @media(max-width:720px){#checklist .col-tam{display:none}}
-  @media(max-width:520px){#checklist .col-ekl{display:none}}
 </style>
 </head>
 <body>
@@ -96,45 +60,10 @@
     <div class="hint">Kaydırıcı = saat • balona tıkla = o bölgeyi aç</div>
   </div>
   <div class="temp" id="temp"></div>
-
-<section id="checklist">
-  <div class="ck-head">
-    <h2>✓ Checklist</h2>
-    <div class="progress-wrap">
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <span id="progressText">0/0 tamamlandı (%0)</span>
-    </div>
-  </div>
-  <div class="add-row">
-    <input id="giris" type="text" placeholder="Yeni görev ekle..." autocomplete="off">
-    <button class="btn primary" id="ekleBtn">Ekle</button>
-  </div>
-  <div class="toolbar">
-    <button class="btn" id="temizleBtn">Tamamlananları Temizle</button>
-    <button class="btn" id="excelAktarBtn">Excel'e Aktar</button>
-    <button class="btn" id="excelYukleBtn">Excel'den Yükle</button>
-    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
-  </div>
-  <div class="list-wrap">
-    <table>
-      <thead><tr>
-        <th class="col-durum">✔</th><th class="col-gorev">Görev</th>
-        <th class="col-ekl">Eklenme</th><th class="col-tam">Tamamlanma</th><th class="col-sil"></th>
-      </tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
-    <div class="empty" id="empty">Henüz görev yok. Yukarıdan ekleyerek başla.</div>
-  </div>
-  <div class="ck-foot">Veriler bu tarayıcıda saklanır · Çift tıklayarak durumu değiştir</div>
-</section>
 </div>
 <div id="alt"></div>
 
-
 <script>
-// ===================== YAĞMUR PANOSU =====================
-(function(){
-
 // ------------------------------------------------------------ ayarlar
 const VARSAYILAN="Kadıköy", YENILEME_DK=15, SAAT_SAYISI=12, ESIK=50;
 const GEOCODE="https://geocoding-api.open-meteo.com/v1/search";
@@ -282,37 +211,51 @@ function cizSaat(){
 }
 function cizSicaklik(){
   const v=d.bugun; if(!v.length){$("temp").innerHTML="";return;}
-  const W=TEMP_W,H=TEMP_H, de=v.map(x=>x[1]);
+  const mob=window.innerWidth<=1250, tel=window.innerWidth<=600;
+  // telefonda: dar ve yüksek çizim + büyük yazılar (ekranda ~2x büyük görünür)
+  const W=tel?400:(mob?600:TEMP_W), H=tel?340:(mob?260:TEMP_H);
+  const f=tel?1.55:(mob?1.2:1), adim=tel?3:2;
+  const de=v.map(x=>x[1]);
   const ort=de.reduce((a,b)=>a+b,0)/de.length, mn=Math.min(...de), mx=Math.max(...de);
-  const sol=34,sag=W-26,ust=74,alt=H-34, ar=Math.max(mx-mn,4), a0=mn-ar*.2, u0=mx+ar*.25;
+  const sol=tel?30:34, sag=W-(tel?22:26), ust=tel?128:74*(mob?1.1:1), alt=H-(tel?40:34);
+  const ar=Math.max(mx-mn,4), a0=mn-ar*.2, u0=mx+ar*.25;
   const xy=(h,t)=>[sol+h*(sag-sol)/23, alt-(t-a0)/(u0-a0)*(alt-ust)];
   const pts=v.map(([h,t])=>xy(h,t));
   let s=`<svg viewBox="0 0 ${W} ${H}" font-family="Segoe UI,system-ui,sans-serif">
-  <text x="18" y="25" font-size="15" font-weight="700" fill="${TXT}">🌡️ Bugün saatlik sıcaklık</text>`;
-  [["ORT",ort.toFixed(1)+"°","#facc15"],["MİN",Math.round(mn)+"°","#38bdf8"],["MAX",Math.round(mx)+"°","#fb7185"]].forEach((k,i)=>{
-    const x=W-20-(2-i)*92;
-    s+=`<rect x="${x-84}" y="8" width="84" height="26" rx="12" fill="${CARD2}"/>
-    <text x="${x-72}" y="25" font-size="9" font-weight="700" fill="${SUB}">${k[0]}</text>
-    <text x="${x-10}" y="26" font-size="15" font-weight="700" fill="${k[2]}" text-anchor="end">${k[1]}</text>`;});
+  <text x="18" y="${tel?32:25}" font-size="${15*f}" font-weight="700" fill="${TXT}">🌡️ Bugün saatlik sıcaklık</text>`;
+  const kutular=[["ORT",ort.toFixed(1)+"°","#facc15"],["MİN",Math.round(mn)+"°","#38bdf8"],["MAX",Math.round(mx)+"°","#fb7185"]];
+  if(tel){
+    const bw=(W-36-16)/3, by=48, bh=44;
+    kutular.forEach((k,i)=>{const x=18+i*(bw+8);
+      s+=`<rect x="${x}" y="${by}" width="${bw}" height="${bh}" rx="14" fill="${CARD2}"/>
+      <text x="${x+bw/2}" y="${by+15}" font-size="11" font-weight="700" fill="${SUB}" text-anchor="middle">${k[0]}</text>
+      <text x="${x+bw/2}" y="${by+36}" font-size="22" font-weight="700" fill="${k[2]}" text-anchor="middle">${k[1]}</text>`;});
+  } else {
+    kutular.forEach((k,i)=>{const x=W-20-(2-i)*92;
+      s+=`<rect x="${x-84}" y="8" width="84" height="26" rx="12" fill="${CARD2}"/>
+      <text x="${x-72}" y="25" font-size="9" font-weight="700" fill="${SUB}">${k[0]}</text>
+      <text x="${x-10}" y="26" font-size="15" font-weight="700" fill="${k[2]}" text-anchor="end">${k[1]}</text>`;});
+  }
   for(let k=0;k<4;k++){const y=ust+k*(alt-ust)/3; s+=`<line x1="${sol}" y1="${y}" x2="${sag}" y2="${y}" stroke="${CARD2}"/>`;}
   const yol=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
   s+=`<path d="${yol} L${pts[pts.length-1][0]} ${alt} L${pts[0][0]} ${alt}Z" fill="${mix("#38bdf8",CARD,.82)}"/>
-  <path d="${yol}" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linejoin="round"/>`;
+  <path d="${yol}" fill="none" stroke="#38bdf8" stroke-width="${3*(tel?1.4:1)}" stroke-linejoin="round"/>`;
   const ya=xy(0,ort)[1];
   s+=`<line x1="${sol}" y1="${ya}" x2="${sag}" y2="${ya}" stroke="#facc15" stroke-dasharray="6 4"/>
-  <text x="${sag}" y="${ya-6}" font-size="11" font-weight="700" fill="#facc15" text-anchor="end">ort ${ort.toFixed(1)}°</text>`;
+  <text x="${sag}" y="${ya-6}" font-size="${11*f}" font-weight="700" fill="#facc15" text-anchor="end">ort ${ort.toFixed(1)}°</text>`;
   v.forEach(([h,t],i)=>{
     const [x,y]=pts[i]; if(h===d.simdi)return;
-    s+=`<circle cx="${x}" cy="${y}" r="3.5" fill="${sicaklikRengi(t)}" stroke="${CARD}"/>`;
-    if(h%2===0)s+=`<text x="${x}" y="${y-9}" font-size="11" font-weight="700" fill="${TXT}" text-anchor="middle">${Math.round(t)}°</text>
-      <text x="${x}" y="${alt+19}" font-size="11" fill="${SUB}" text-anchor="middle">${String(h).padStart(2,"0")}</text>`;});
+    s+=`<circle cx="${x}" cy="${y}" r="${3.5*(tel?1.4:1)}" fill="${sicaklikRengi(t)}" stroke="${CARD}"/>`;
+    if(h%adim===0)s+=`<text x="${x}" y="${y-9*(tel?1.3:1)}" font-size="${11*f}" font-weight="700" fill="${TXT}" text-anchor="middle">${Math.round(t)}°</text>
+      <text x="${x}" y="${alt+19*(tel?1.1:1)}" font-size="${11*f}" fill="${SUB}" text-anchor="middle">${String(h).padStart(2,"0")}</text>`;});
   v.forEach(([h,t],i)=>{ if(h!==d.simdi)return; const [x,y]=pts[i];
+    const bw=76*f, bh=22*f, bx=Math.min(Math.max(x-bw/2,4),W-bw-4);
     s+=`<line x1="${x}" y1="${ust-8}" x2="${x}" y2="${alt}" stroke="#fb7185" stroke-dasharray="3 4"/>
-    <circle cx="${x}" cy="${y}" r="9" fill="${CARD}" stroke="#fb7185" stroke-width="2"/>
-    <circle cx="${x}" cy="${y}" r="5" fill="${sicaklikRengi(t)}"/>
-    <rect x="${x-38}" y="${y-38}" width="76" height="22" rx="10" fill="#fb7185"/>
-    <text x="${x}" y="${y-23}" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">şimdi ${Math.round(t)}°</text>
-    <text x="${x}" y="${alt+19}" font-size="11" font-weight="700" fill="#fb7185" text-anchor="middle">${String(h).padStart(2,"0")}</text>`;});
+    <circle cx="${x}" cy="${y}" r="${9*(tel?1.3:1)}" fill="${CARD}" stroke="#fb7185" stroke-width="2"/>
+    <circle cx="${x}" cy="${y}" r="${5*(tel?1.3:1)}" fill="${sicaklikRengi(t)}"/>
+    <rect x="${bx}" y="${y-bh-16}" width="${bw}" height="${bh}" rx="${10*f}" fill="#fb7185"/>
+    <text x="${bx+bw/2}" y="${y-16-bh/2+4*f}" font-size="${11*f}" font-weight="700" fill="#fff" text-anchor="middle">şimdi ${Math.round(t)}°</text>
+    <text x="${x}" y="${alt+19*(tel?1.1:1)}" font-size="${11*f}" font-weight="700" fill="#fb7185" text-anchor="middle">${String(h).padStart(2,"0")}</text>`;});
   $("temp").innerHTML=s+"</svg>";
 }
 const nokta=(lat,lon)=>[22+(lon-LON_SOL)/(LON_SAG-LON_SOL)*(MAP_W-44), 56+(LAT_UST-lat)/(LAT_UST-LAT_ALT)*(MAP_H-84)];
@@ -406,278 +349,8 @@ setInterval(()=>{
   if(sa.some(v=>v[d.haritaSaat]&&v[d.haritaSaat].p>=85))cizHarita();
 },500);
 
+let _w=innerWidth;addEventListener('resize',()=>{if((_w<=600)!==(innerWidth<=600)||(_w<=1250)!==(innerWidth<=1250)){_w=innerWidth;if(d.c)cizSicaklik();}});
 cizHarita(); yenile(true);
-
-})();
-</script>
-<script>
-// ===================== CHECKLIST =====================
-(function () {
-  "use strict";
-
-  const STORAGE_KEY = "checklist_v1";
-
-  /** @type {Array<[string, "Evet"|"Hayır", string, string]>} */
-  let satirlar = [];
-
-  const $ = (id) => document.getElementById(id);
-  const tbody      = $("tbody");
-  const giris      = $("giris");
-  const emptyEl    = $("empty");
-  const fileInput  = $("fileInput");
-  const progressFill = $("progressFill");
-  const progressText = $("progressText");
-
-  /* ----------------------------- YARDIMCILAR ----------------------------- */
-
-  function iki(n) { return String(n).padStart(2, "0"); }
-
-  /** dd.mm.yyyy hh:mm */
-  function tarihFormat(d = new Date()) {
-    return `${iki(d.getDate())}.${iki(d.getMonth() + 1)}.${d.getFullYear()} ${iki(d.getHours())}:${iki(d.getMinutes())}`;
-  }
-
-  function esc(s) {
-    return String(s).replace(/[&<>"']/g, (c) => (
-      { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
-    ));
-  }
-
-  /** Python tarafındaki durum normalizasyonu ile aynı mantık */
-  function durumNormalize(deger) {
-    const v = String(deger ?? "").trim().toLowerCase();
-    return ["evet", "x", "✔", "true", "1"].includes(v) ? "Evet" : "Hayır";
-  }
-
-  /* ------------------------------ KAYIT ------------------------------ */
-
-  function yukle() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const veri = raw ? JSON.parse(raw) : [];
-      satirlar = Array.isArray(veri)
-        ? veri.filter((r) => Array.isArray(r) && r[0]).map((r) => [
-            String(r[0]),
-            r[1] === "Evet" ? "Evet" : "Hayır",
-            String(r[2] ?? ""),
-            String(r[3] ?? ""),
-          ])
-        : [];
-    } catch (e) {
-      satirlar = [];
-    }
-  }
-
-  function kaydet() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(satirlar));
-    } catch (e) {
-      alert("Kayıt yapılamadı (tarayıcı depolaması dolu olabilir).");
-    }
-  }
-
-  /* ------------------------------ ÇİZİM ------------------------------ */
-
-  function goster() {
-    tbody.innerHTML = "";
-
-    satirlar.forEach((s, i) => {
-      const bitti = s[1] === "Evet";
-      const tr = document.createElement("tr");
-      if (bitti) tr.className = "done";
-      tr.dataset.i = String(i);
-
-      tr.innerHTML =
-        '<td class="col-durum"><input type="checkbox" ' + (bitti ? "checked" : "") +
-          ' aria-label="Tamamlandı işaretle"></td>' +
-        '<td class="col-gorev">' + esc(s[0]) + "</td>" +
-        '<td class="col-ekl">' + esc(s[2]) + "</td>" +
-        '<td class="col-tam">' + esc(s[3]) + "</td>" +
-        '<td class="col-sil"><button class="del" title="Sil">×</button></td>';
-
-      tbody.appendChild(tr);
-    });
-
-    emptyEl.classList.toggle("show", satirlar.length === 0);
-    ilerlemeGuncelle();
-  }
-
-  function ilerlemeGuncelle() {
-    const toplam = satirlar.length;
-    const biten = satirlar.reduce((t, s) => t + (s[1] === "Evet" ? 1 : 0), 0);
-    const yuzde = toplam ? Math.round((biten * 100) / toplam) : 0;
-    progressFill.style.width = yuzde + "%";
-    progressText.textContent = `${biten}/${toplam} tamamlandı (%${yuzde})`;
-  }
-
-  /* ----------------------------- İŞLEMLER ----------------------------- */
-
-  function ekle() {
-    const metin = giris.value.trim();
-    if (!metin) { giris.focus(); return; }
-    satirlar.push([metin, "Hayır", tarihFormat(), ""]);
-    kaydet();
-    giris.value = "";
-    giris.focus();
-    goster();
-  }
-
-  function durumDegistir(i) {
-    const s = satirlar[i];
-    if (!s) return;
-    if (s[1] === "Evet") {
-      s[1] = "Hayır";
-      s[3] = "";
-    } else {
-      s[1] = "Evet";
-      s[3] = tarihFormat();
-    }
-    kaydet();
-    goster();
-  }
-
-  function sil(i) {
-    const s = satirlar[i];
-    if (!s) return;
-    if (!confirm(`"${s[0]}" silinsin mi?`)) return;
-    satirlar.splice(i, 1);
-    kaydet();
-    goster();
-  }
-
-  function temizle() {
-    const biten = satirlar.filter((s) => s[1] === "Evet").length;
-    if (!biten) return;
-    if (!confirm(`${biten} tamamlanan görev silinsin mi?`)) return;
-    satirlar = satirlar.filter((s) => s[1] !== "Evet");
-    kaydet();
-    goster();
-  }
-
-  /* ------------------------------ EXCEL ------------------------------ */
-
-  const BASLIKLAR = ["Görev", "Durum", "Eklenme Tarihi", "Tamamlanma Tarihi"];
-
-  function excelAktar() {
-    const veri = [BASLIKLAR].concat(satirlar.map((s) => [s[0], s[1], s[2], s[3]]));
-
-    // SheetJS yüklüyse gerçek .xlsx üret
-    if (typeof XLSX !== "undefined") {
-      const ws = XLSX.utils.aoa_to_sheet(veri);
-      ws["!cols"] = [{ wch: 50 }, { wch: 10 }, { wch: 20 }, { wch: 20 }];
-      ws["!autofilter"] = { ref: `A1:D${veri.length}` };
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Checklist");
-      XLSX.writeFile(wb, "checklist.xlsx");
-      return;
-    }
-
-    // Çevrimdışıysa CSV (Excel uyumlu, noktalı virgül + BOM)
-    const csv = "\uFEFF" + veri
-      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
-      .join("\r\n");
-    indir(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "checklist.csv");
-  }
-
-  function indir(blob, ad) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = ad;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
-  function excelYukleDosya(file) {
-    if (typeof XLSX === "undefined") {
-      alert("Excel kütüphanesi yüklenemedi (internet bağlantısı gerekli).");
-      return;
-    }
-    const reader = new FileReader();
-
-    reader.onload = (ev) => {
-      try {
-        const csvMi = /\.csv$/i.test(file.name);
-        const wb = csvMi
-          ? XLSX.read(ev.target.result, { type: "string" })
-          : XLSX.read(new Uint8Array(ev.target.result), { type: "array" });
-
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        if (!ws) throw new Error("Sayfa bulunamadı.");
-
-        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" });
-        const yeni = [];
-
-        rows.slice(1).forEach((r) => {
-          if (!r || !r[0] || !String(r[0]).trim()) return;
-          yeni.push([
-            String(r[0]).trim(),
-            durumNormalize(r[1]),
-            String(r[2] ?? ""),
-            String(r[3] ?? ""),
-          ]);
-        });
-
-        if (!yeni.length) { alert("Dosyada okunabilir görev bulunamadı."); return; }
-
-        const degistir = confirm(
-          `${yeni.length} görev bulundu.\n\n` +
-          "Tamam = Mevcut liste değiştirilsin\n" +
-          "İptal = Mevcut listeye eklensin"
-        );
-
-        satirlar = degistir ? yeni : satirlar.concat(yeni);
-        kaydet();
-        goster();
-      } catch (err) {
-        alert("Dosya okunamadı:\n" + err.message);
-      }
-    };
-
-    if (/\.csv$/i.test(file.name)) reader.readAsText(file, "utf-8");
-    else reader.readAsArrayBuffer(file);
-  }
-
-  /* ------------------------------ OLAYLAR ------------------------------ */
-
-  $("ekleBtn").addEventListener("click", ekle);
-  giris.addEventListener("keydown", (e) => { if (e.key === "Enter") ekle(); });
-  $("temizleBtn").addEventListener("click", temizle);
-  $("excelAktarBtn").addEventListener("click", excelAktar);
-  $("excelYukleBtn").addEventListener("click", () => fileInput.click());
-
-  fileInput.addEventListener("change", (e) => {
-    const f = e.target.files && e.target.files[0];
-    if (f) excelYukleDosya(f);
-    fileInput.value = "";
-  });
-
-  // Satır tıklamaları (olay delegasyonu)
-  tbody.addEventListener("click", (e) => {
-    const tr = e.target.closest("tr");
-    if (!tr) return;
-    const i = Number(tr.dataset.i);
-
-    if (e.target.matches('input[type="checkbox"]')) {
-      durumDegistir(i);
-    } else if (e.target.closest(".del")) {
-      sil(i);
-    }
-  });
-
-  // Çift tıklama ile durum değiştir (Tkinter sürümündeki gibi)
-  tbody.addEventListener("dblclick", (e) => {
-    if (e.target.matches("input, button")) return;
-    const tr = e.target.closest("tr");
-    if (tr) durumDegistir(Number(tr.dataset.i));
-  });
-
-  /* ------------------------------- BAŞLAT ------------------------------- */
-  yukle();
-  goster();
-  giris.focus();
-})();
-
 </script>
 </body>
 </html>
