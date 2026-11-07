@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>☔ Yağmur Panosu</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{--bg:#0d1020;--card:#171b30;--card2:#222845;--txt:#eef1ff;--sub:#8b93b8}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:"Segoe UI",system-ui,sans-serif;padding:12px 16px}
+  header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:1220px;margin:0 auto 8px}
+  header h1{font-size:20px;margin:0 auto 0 0}
+  header input,header select,header button{font:inherit;font-size:14px;border:0;border-radius:8px;padding:8px 12px;background:var(--card2);color:var(--txt)}
+  header input{width:150px}
+  header button{cursor:pointer;font-weight:700}
+  header button.ara{background:#38bdf8;color:#10142a}
+  .grid{display:grid;grid-template-columns:340px 440px 400px;gap:16px;max-width:1220px;margin:0 auto}
+  .hero{grid-row:1}
+  .col2{display:flex;flex-direction:column;gap:12px}
+  .temp{grid-column:1/3;background:var(--card);border-radius:22px;overflow:hidden}
+  .mapcol{grid-column:3;grid-row:1/3;background:var(--card);border-radius:22px;padding:0 0 10px;align-self:start}
+  .hero svg,.alert svg,.temp svg,.mapcol svg{display:block;width:100%;height:auto}
+  .saat{background:var(--card);border-radius:22px;padding:12px}
+  .saat h3{margin:0 0 8px 4px;font-size:13px}
+  .tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .tile{border-radius:12px;padding:6px 2px;text-align:center;height:58px;border:2px solid transparent}
+  .tile small{display:block;font-size:10px;font-weight:700}
+  .tile b{display:block;font-size:16px;line-height:1.25}
+  .tile i{display:block;font-size:9px;font-style:normal}
+  .alert{border-radius:22px;padding:0 18px;height:112px;display:flex;align-items:center;gap:14px}
+  .alert .em{font-size:40px}
+  .alert .bs{font-size:18px;font-weight:700}
+  .alert .al{font-size:13px;margin-top:6px}
+  .slwrap{padding:8px 20px 0}
+  input[type=range]{width:100%;accent-color:#38bdf8}
+  .hint{font-size:11px;color:var(--sub);text-align:center}
+  #alt{max-width:1220px;margin:10px auto 0;font-size:11px;color:var(--sub)}
+  .ilce{cursor:pointer}
+  @media(max-width:1250px){.grid{grid-template-columns:1fr}.temp,.mapcol{grid-column:1;grid-row:auto}}
+</style>
+</head>
+<body>
+<header>
+  <h1>☔ YAĞMUR PANOSU</h1>
+  <select id="ilce"><option>Bölge seç</option></select>
+  <input id="sehir" value="Kadıköy" placeholder="Şehir ara">
+  <button class="ara" id="ara">Ara</button>
+  <button id="yenile">⟳ Yenile</button>
+  <button id="bildirim">🔔 Uyarıları aç</button>
+</header>
+<div class="grid">
+  <div class="hero" id="hero"></div>
+  <div class="col2">
+    <div class="alert" id="uyari"></div>
+    <div class="saat"><h3>☔ Yağış ihtimali • önümüzdeki 12 saat</h3><div class="tiles" id="tiles"></div></div>
+  </div>
+  <div class="mapcol">
+    <div id="harita"></div>
+    <div class="slwrap"><input type="range" id="kay" min="0" max="11" value="0"></div>
+    <div class="hint">Kaydırıcı = saat • balona tıkla = o bölgeyi aç</div>
+  </div>
+  <div class="temp" id="temp"></div>
+</div>
+<div id="alt"></div>
+
+<script>
+// ------------------------------------------------------------ ayarlar
+const VARSAYILAN="Kadıköy", YENILEME_DK=15, SAAT_SAYISI=12, ESIK=50;
+const GEOCODE="https://geocoding-api.open-meteo.com/v1/search";
+const FORECAST="https://api.open-meteo.com/v1/forecast";
+const HAVA={0:"Açık",1:"Çoğunlukla açık",2:"Parçalı bulutlu",3:"Kapalı",45:"Sisli",48:"Kırağılı sis",
+ 51:"Hafif çise",53:"Çise",55:"Yoğun çise",61:"Hafif yağmur",63:"Yağmur",65:"Şiddetli yağmur",
+ 66:"Dondurucu yağmur",67:"Dondurucu yağmur",71:"Hafif kar",73:"Kar",75:"Yoğun kar",77:"Kar taneleri",
+ 80:"Hafif sağanak",81:"Sağanak",82:"Şiddetli sağanak",85:"Kar sağanağı",86:"Kar sağanağı",
+ 95:"Gök gürültülü fırtına",96:"Dolu ile fırtına",99:"Dolu ile fırtına"};
+const YAGMURLU=new Set([51,53,55,61,63,65,66,67,80,81,82,95,96,99]);
+const KARLI=new Set([71,73,75,77,85,86]);
+const DOLU=new Set([96,99]);
+const ILCELER={"Kadıköy":[40.9910,29.0270],"Üsküdar":[41.0226,29.0153],"Ataşehir":[40.9923,29.1244],
+ "Maltepe":[40.9350,29.1310],"Kartal":[40.9060,29.1900],"Pendik":[40.8760,29.2330],"Tuzla":[40.8160,29.3000],
+ "Beykoz":[41.1340,29.1000],"Sarıyer":[41.1670,29.0500],"Beşiktaş":[41.0430,29.0090],"Fatih":[41.0190,28.9400],
+ "Bakırköy":[40.9800,28.8720],"Başakşehir":[41.0930,28.8020],"Avcılar":[40.9790,28.7210],"Esenyurt":[41.0340,28.6800]};
+const LAT_UST=41.22,LAT_ALT=40.78,LON_SOL=28.65,LON_SAG=29.35;
+const YEDEK={"istanbul":[41.0138,28.9497,"İstanbul, Türkiye"],"ankara":[39.9199,32.8543,"Ankara, Türkiye"],
+ "izmir":[38.4127,27.1384,"İzmir, Türkiye"],"bursa":[40.1828,29.0665,"Bursa, Türkiye"],"antalya":[36.9081,30.6956,"Antalya, Türkiye"]};
+const BG="#0d1020",CARD="#171b30",CARD2="#222845",TXT="#eef1ff",SUB="#8b93b8";
+const KAYDIR={"Üsküdar":[16,-12],"Beşiktaş":[-18,-8],"Kadıköy":[-2,10],"Fatih":[-10,4],"Ataşehir":[6,4]};
+const MAP_W=400,MAP_H=430,TEMP_W=790,TEMP_H=220;
+
+const duz=a=>a.trim().replaceAll("İ","i").replaceAll("I","ı").toLowerCase()
+  .replace(/ı/g,"i").replace(/ç/g,"c").replace(/ş/g,"s").replace(/ğ/g,"g").replace(/ö/g,"o").replace(/ü/g,"u");
+const ILCE_ARAMA={};
+for(const k in ILCELER) ILCE_ARAMA[duz(k)]=[ILCELER[k][0],ILCELER[k][1],k+", İstanbul"];
+
+// ------------------------------------------------------------ yardımcılar
+const d={sehir:"…",c:null,saatler:[],bugun:[],simdi:0,bolge:{},haritaSaat:0,yanip:false,uyari:null};
+let konum=null,zamanlayici=null,sonUyari=null;
+const $=id=>document.getElementById(id);
+
+function mix(a,b,t){
+  const pa=[1,3,5].map(i=>parseInt(a.substr(i,2),16)), pb=[1,3,5].map(i=>parseInt(b.substr(i,2),16));
+  return "#"+pa.map((x,i)=>Math.round(x+(pb[i]-x)*t).toString(16).padStart(2,"0")).join("");
+}
+function olasilikRengi(p,yanip){
+  if(p<30)return "#38bdf8"; if(p<50)return "#facc15"; if(p<70)return "#fb923c"; if(p<85)return "#ef4444";
+  return yanip?"#ffffff":"#991b1b";
+}
+const yaziRengi=z=>["#38bdf8","#facc15","#ffffff"].includes(z)?"#10142a":"#ffffff";
+function sicaklikRengi(t){
+  if(t<5)return "#0984e3"; if(t<12)return "#74b9ff"; if(t<18)return "#00b894";
+  if(t<24)return "#fdcb6e"; if(t<30)return "#e17055"; return "#d63031";
+}
+function tema(kod,gunduz){
+  if(YAGMURLU.has(kod))return ["#27ae60","#ffffff","🌧️"];
+  if(KARLI.has(kod))return ["#d63031","#ffffff","❄️"];
+  if(kod===45||kod===48)return ["#f9ca24","#2d3436","🌫️"];
+  if(kod===0||kod===1)return gunduz?["#0984e3","#ffffff","☀️"]:["#0c2461","#ffffff","🌙"];
+  if(kod===2)return ["#74b9ff","#2d3436","⛅"];
+  return ["#636e72","#ffffff","☁️"];
+}
+async function getir(url,params){
+  const r=await fetch(url+"?"+new URLSearchParams(params));
+  if(!r.ok)throw new Error("Sunucu hatası: "+r.status);
+  return r.json();
+}
+async function sehirBul(ad){
+  if(ILCE_ARAMA[duz(ad)])return ILCE_ARAMA[duz(ad)];
+  let v;
+  try{ v=await getir(GEOCODE,{name:ad,count:1,language:"tr"}); }
+  catch(e){
+    const a=duz(ad); if(YEDEK[a])return YEDEK[a];
+    throw new Error("Şehir aranamadı. İnternet bağlantını kontrol et.");
+  }
+  if(!v.results||!v.results.length)throw new Error(`'${ad}' bulunamadı.`);
+  const s=v.results[0]; return [s.latitude,s.longitude,`${s.name}, ${s.country||""}`];
+}
+const havaAl=(lat,lon)=>getir(FORECAST,{latitude:lat,longitude:lon,
+  current:"temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,is_day",
+  hourly:"precipitation_probability,precipitation,weather_code,temperature_2m",forecast_days:3,timezone:"auto"});
+
+async function bolgeAl(){
+  const adlar=Object.keys(ILCELER);
+  let c=await getir(FORECAST,{latitude:adlar.map(a=>ILCELER[a][0]).join(","),longitude:adlar.map(a=>ILCELER[a][1]).join(","),
+    current:"precipitation",hourly:"precipitation_probability,precipitation,weather_code",forecast_days:2,timezone:"auto"});
+  if(!Array.isArray(c))c=[c];
+  const o={}; adlar.forEach((a,i)=>o[a]=saatlik(c[i])); return o;
+}
+// saat dizisi: [{h:"14", t:"2026-..T14:00", p, mm, kod}]
+function saatlik(v,n=SAAT_SAYISI){
+  const simdi=v.current.time.slice(0,13)+":00", h=v.hourly, out=[];
+  for(let i=0;i<h.time.length;i++){
+    if(h.time[i]<simdi)continue;
+    out.push({t:h.time[i],h:h.time[i].slice(11,13),p:h.precipitation_probability[i]||0,mm:h.precipitation[i]||0,kod:h.weather_code[i]});
+    if(out.length>=n)break;
+  }
+  return out;
+}
+function bugunSicaklik(v){
+  const gun=v.current.time.slice(0,10), out=[];
+  v.hourly.time.forEach((t,i)=>{const d=v.hourly.temperature_2m[i]; if(t.slice(0,10)===gun&&d!=null)out.push([+t.slice(11,13),d]);});
+  return out;
+}
+function uyariHesapla(c,saatler){
+  const kod=c.weather_code, enYuksek=Math.max(0,...saatler.map(x=>x.p));
+  let dolu=saatler.find(x=>DOLU.has(x.kod));
+  if(DOLU.has(kod))dolu=dolu||saatler[0];
+  const yagisli=saatler.filter(x=>x.p>=ESIK||x.mm>=0.1||YAGMURLU.has(x.kod));
+  if(dolu)return{baslik:"DOLU UYARISI!",emoji:"🚨",renk:"#ef4444",yazi:"#ffffff",panik:true,
+    alt:`${dolu.h}:00 civarı • arabayı ört, içeride kal`,anahtar:"dolu"+dolu.t};
+  if(enYuksek>=80){const ilk=saatler.find(x=>x.p>=80);
+    return{baslik:`PANİK! %${enYuksek} YAĞMUR İHTİMALİ`,emoji:"🚨",renk:"#ef4444",yazi:"#ffffff",panik:true,
+    alt:`${ilk.h}:00 civarı bardaktan boşanırcasına`,anahtar:"panik"+ilk.t};}
+  if(YAGMURLU.has(kod)||c.precipitation>0)
+    return{baslik:"Şu an yağmur yağıyor",emoji:"🌧️",renk:"#fb923c",yazi:"#10142a",panik:false,
+    alt:`${c.precipitation} mm • şemsiyeni al`,anahtar:"simdi"};
+  if(yagisli.length){const ilk=yagisli[0], top=yagisli.reduce((s,x)=>s+x.mm,0);
+    return{baslik:"Yağmur geliyor",emoji:"☔",renk:"#facc15",yazi:"#10142a",panik:false,
+    alt:`İlk yağış ${ilk.h}:00 • en yüksek %${enYuksek} • ~${top.toFixed(1)} mm`,anahtar:ilk.t};}
+  return{baslik:"Yağmur yok",emoji:"☀️",renk:"#10b981",yazi:"#ffffff",panik:false,
+    alt:`Önümüzdeki ${SAAT_SAYISI} saat sakin`,anahtar:null};
+}
+
+// ------------------------------------------------------------ çizimler
+function cizHero(){
+  const c=d.c, kod=c.weather_code, [bg,fg,emoji]=tema(kod,!!c.is_day);
+  const kutu=[["HİSSEDİLEN",Math.round(c.apparent_temperature)+"°"],["NEM","%"+c.relative_humidity_2m],
+              ["RÜZGAR",Math.round(c.wind_speed_10m)+" km/s"]];
+  const gw=(340-44-16)/3;
+  $("hero").innerHTML=`<svg viewBox="0 0 340 290" font-family="Segoe UI,system-ui,sans-serif">
+  <rect width="340" height="290" rx="24" fill="${bg}"/>
+  <text x="22" y="34" font-size="19" font-weight="700" fill="${fg}">📍 ${d.sehir}</text>
+  <text x="318" y="100" font-size="52" text-anchor="end">${emoji}</text>
+  <text x="18" y="150" font-size="88" font-weight="700" fill="${fg}">${Math.round(c.temperature_2m)}°</text>
+  <text x="22" y="174" font-size="22" fill="${fg}">${HAVA[kod]||"—"}</text>
+  ${kutu.map((k,i)=>{const x=22+i*(gw+8);return `<rect x="${x}" y="206" width="${gw}" height="62" rx="14" fill="${mix(bg,"#000000",.25)}"/>
+  <text x="${x+gw/2}" y="226" font-size="10" font-weight="700" fill="${fg}" text-anchor="middle">${k[0]}</text>
+  <text x="${x+gw/2}" y="254" font-size="20" font-weight="700" fill="${fg}" text-anchor="middle">${k[1]}</text>`}).join("")}
+  </svg>`;
+}
+function cizUyari(){
+  const u=d.uyari; let renk=u.renk;
+  if(u.panik)renk=d.yanip?"#ff1f1f":"#7f1010";
+  const el=$("uyari"); el.style.background=renk; el.style.color=u.yazi;
+  el.innerHTML=`<div class="em">${u.emoji}</div><div><div class="bs">${u.baslik}</div><div class="al">${u.alt}</div></div>`;
+}
+function cizSaat(){
+  $("tiles").innerHTML=d.saatler.slice(0,12).map((x,i)=>{
+    const r=olasilikRengi(x.p,d.yanip), ink=yaziRengi(r);
+    return `<div class="tile" style="background:${r};color:${ink};border-color:${x.p>=85?"#ff6b6b":"transparent"}">
+      <small>${i===0?"şimdi":x.h+":00"}</small><b>%${x.p}</b><i>${x.mm>=0.1?x.mm.toFixed(1)+" mm":"–"}</i></div>`;}).join("");
+}
+function cizSicaklik(){
+  const v=d.bugun; if(!v.length){$("temp").innerHTML="";return;}
+  const W=TEMP_W,H=TEMP_H, de=v.map(x=>x[1]);
+  const ort=de.reduce((a,b)=>a+b,0)/de.length, mn=Math.min(...de), mx=Math.max(...de);
+  const sol=34,sag=W-26,ust=74,alt=H-34, ar=Math.max(mx-mn,4), a0=mn-ar*.2, u0=mx+ar*.25;
+  const xy=(h,t)=>[sol+h*(sag-sol)/23, alt-(t-a0)/(u0-a0)*(alt-ust)];
+  const pts=v.map(([h,t])=>xy(h,t));
+  let s=`<svg viewBox="0 0 ${W} ${H}" font-family="Segoe UI,system-ui,sans-serif">
+  <text x="18" y="25" font-size="15" font-weight="700" fill="${TXT}">🌡️ Bugün saatlik sıcaklık</text>`;
+  [["ORT",ort.toFixed(1)+"°","#facc15"],["MİN",Math.round(mn)+"°","#38bdf8"],["MAX",Math.round(mx)+"°","#fb7185"]].forEach((k,i)=>{
+    const x=W-20-(2-i)*92;
+    s+=`<rect x="${x-84}" y="8" width="84" height="26" rx="12" fill="${CARD2}"/>
+    <text x="${x-72}" y="25" font-size="9" font-weight="700" fill="${SUB}">${k[0]}</text>
+    <text x="${x-10}" y="26" font-size="15" font-weight="700" fill="${k[2]}" text-anchor="end">${k[1]}</text>`;});
+  for(let k=0;k<4;k++){const y=ust+k*(alt-ust)/3; s+=`<line x1="${sol}" y1="${y}" x2="${sag}" y2="${y}" stroke="${CARD2}"/>`;}
+  const yol=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  s+=`<path d="${yol} L${pts[pts.length-1][0]} ${alt} L${pts[0][0]} ${alt}Z" fill="${mix("#38bdf8",CARD,.82)}"/>
+  <path d="${yol}" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linejoin="round"/>`;
+  const ya=xy(0,ort)[1];
+  s+=`<line x1="${sol}" y1="${ya}" x2="${sag}" y2="${ya}" stroke="#facc15" stroke-dasharray="6 4"/>
+  <text x="${sag}" y="${ya-6}" font-size="11" font-weight="700" fill="#facc15" text-anchor="end">ort ${ort.toFixed(1)}°</text>`;
+  v.forEach(([h,t],i)=>{
+    const [x,y]=pts[i]; if(h===d.simdi)return;
+    s+=`<circle cx="${x}" cy="${y}" r="3.5" fill="${sicaklikRengi(t)}" stroke="${CARD}"/>`;
+    if(h%2===0)s+=`<text x="${x}" y="${y-9}" font-size="11" font-weight="700" fill="${TXT}" text-anchor="middle">${Math.round(t)}°</text>
+      <text x="${x}" y="${alt+19}" font-size="11" fill="${SUB}" text-anchor="middle">${String(h).padStart(2,"0")}</text>`;});
+  v.forEach(([h,t],i)=>{ if(h!==d.simdi)return; const [x,y]=pts[i];
+    s+=`<line x1="${x}" y1="${ust-8}" x2="${x}" y2="${alt}" stroke="#fb7185" stroke-dasharray="3 4"/>
+    <circle cx="${x}" cy="${y}" r="9" fill="${CARD}" stroke="#fb7185" stroke-width="2"/>
+    <circle cx="${x}" cy="${y}" r="5" fill="${sicaklikRengi(t)}"/>
+    <rect x="${x-38}" y="${y-38}" width="76" height="22" rx="10" fill="#fb7185"/>
+    <text x="${x}" y="${y-23}" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">şimdi ${Math.round(t)}°</text>
+    <text x="${x}" y="${alt+19}" font-size="11" font-weight="700" fill="#fb7185" text-anchor="middle">${String(h).padStart(2,"0")}</text>`;});
+  $("temp").innerHTML=s+"</svg>";
+}
+const nokta=(lat,lon)=>[22+(lon-LON_SOL)/(LON_SAG-LON_SOL)*(MAP_W-44), 56+(LAT_UST-lat)/(LAT_UST-LAT_ALT)*(MAP_H-84)];
+function haritaPos(ad){
+  const [x,y]=nokta(...ILCELER[ad]), [dx,dy]=KAYDIR[ad]||[0,0]; return [x+dx,y+dy];
+}
+function cizHarita(){
+  const W=MAP_W,H=MAP_H,deniz="#12365e";
+  const marmara=[[40.97,28.65],[40.96,28.87],[41.00,28.98],[40.98,29.02],[40.95,29.10],[40.89,29.16],[40.86,29.23],[40.80,29.35],[40.78,29.35],[40.78,28.65]];
+  const bogaz=[[41.22,29.12],[41.12,29.07],[41.08,29.04],[41.03,29.03],[41.00,28.99]];
+  let s=`<svg viewBox="0 0 ${W} ${H}" font-family="Segoe UI,system-ui,sans-serif">
+  <text x="16" y="25" font-size="15" font-weight="700" fill="${TXT}">🗺️ İstanbul yağmur haritası</text>
+  <rect x="10" y="40" width="${W-20}" height="${H-50}" rx="18" fill="#232a4a"/>
+  <polygon points="${marmara.map(p=>nokta(...p).join(",")).join(" ")}" fill="${deniz}"/>
+  <polyline points="${bogaz.map(p=>nokta(...p).join(",")).join(" ")}" fill="none" stroke="${deniz}" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="24" y="${H-24}" font-size="12" font-style="italic" fill="#3d6a9e">Marmara Denizi</text>`;
+  const ornek=Object.values(d.bolge)[0], i=d.haritaSaat;
+  if(!ornek){ $("harita").innerHTML=s+`<text x="${W/2}" y="${H/2}" font-size="16" fill="${SUB}" text-anchor="middle">Harita yükleniyor...</text></svg>`; return; }
+  if(i<ornek.length)s+=`<text x="${W-16}" y="25" font-size="14" font-weight="700" fill="#38bdf8" text-anchor="end">${ornek[i].h}:00${i===0?"  (şimdi)":""}</text>`;
+  const secili=duz(d.sehir.split(",")[0]);
+  for(const ad in ILCELER){
+    const sa=d.bolge[ad]||[]; if(i>=sa.length)continue;
+    const p=sa[i].p, [x,y]=haritaPos(ad), sec=duz(ad)===secili, r=sec?16:12, renk=olasilikRengi(p,d.yanip);
+    s+=`<g class="ilce" data-ad="${ad}">`;
+    if(p>=85)s+=`<circle cx="${x}" cy="${y}" r="${r+5}" fill="none" stroke="#ff6b6b" stroke-width="2"/>`;
+    s+=`<circle cx="${x}" cy="${y}" r="${r}" fill="${renk}" stroke="${sec?"#fff":CARD}" stroke-width="${sec?3:2}"/>
+    <text x="${x}" y="${y+4}" font-size="${sec?14:12}" font-weight="700" fill="${yaziRengi(renk)}" text-anchor="middle">${p}</text>
+    <text x="${x}" y="${y+r+13}" font-size="11" font-weight="${sec?700:400}" fill="${sec?"#fff":"#aab2d5"}" text-anchor="middle">${ad}</text></g>`;
+  }
+  $("harita").innerHTML=s+"</svg>";
+}
+function hata(mesaj){
+  d.uyari={baslik:"Hava durumu alınamadı",alt:mesaj,renk:"#fb923c",yazi:"#10142a",emoji:"⚠️",panik:false,anahtar:null};
+  ["hero","temp","tiles"].forEach(k=>$(k).innerHTML=""); cizUyari();
+}
+
+// ------------------------------------------------------------ uyarı sesi / bildirim
+let ses=null;
+function sesAc(){ try{ ses=ses||new (window.AudioContext||window.webkitAudioContext)(); ses.resume(); }catch(e){} }
+function bip(){
+  if(!ses)return;
+  [0,0.25,0.5].forEach(gec=>{const o=ses.createOscillator(),g=ses.createGain();
+    o.frequency.value=880; g.gain.value=.15; o.connect(g); g.connect(ses.destination);
+    o.start(ses.currentTime+gec); o.stop(ses.currentTime+gec+.18);});
+}
+$("bildirim").onclick=()=>{ sesAc(); bip(); if("Notification" in window)Notification.requestPermission(); $("bildirim").textContent="🔔 Uyarılar açık"; };
+document.addEventListener("click",sesAc,{once:true});
+
+// ------------------------------------------------------------ akış
+function goster(sehir,v){
+  d.sehir=sehir; d.c=v.current; d.saatler=saatlik(v); d.bugun=bugunSicaklik(v);
+  d.simdi=+v.current.time.slice(11,13); d.uyari=uyariHesapla(d.c,d.saatler);
+  cizHero(); cizUyari(); cizSaat(); cizSicaklik(); cizHarita();
+  const a=d.uyari.anahtar;
+  if(a&&a!==sonUyari){
+    bip();
+    if("Notification" in window&&Notification.permission==="granted")new Notification(d.uyari.baslik,{body:d.uyari.alt});
+  }
+  sonUyari=a;
+  const z=new Date(); $("alt").textContent=`Son güncelleme: ${z.toTimeString().slice(0,5)}  •  her ${YENILEME_DK} dk'da bir yenilenir`;
+}
+async function yenile(yeni=false){
+  clearTimeout(zamanlayici);
+  const ad=$("sehir").value.trim()||VARSAYILAN;
+  try{
+    const k=yeni?await sehirBul(ad):(konum||await sehirBul(ad));
+    const v=await havaAl(k[0],k[1]); konum=k; goster(k[2],v);
+  }catch(e){ hata(e.message||String(e)); zamanlayici=setTimeout(()=>yenile(),YENILEME_DK*60000); return; }
+  zamanlayici=setTimeout(()=>yenile(),YENILEME_DK*60000);
+  try{ d.bolge=await bolgeAl(); cizHarita(); }
+  catch(e){ $("alt").textContent="Harita verisi alınamadı: "+e.message; }
+}
+function ilceSec(ad){ $("sehir").value=ad; yenile(true); }
+
+// ------------------------------------------------------------ olaylar
+const sel=$("ilce"); Object.keys(ILCELER).forEach(a=>sel.add(new Option(a,a)));
+sel.onchange=()=>ilceSec(sel.value);
+$("ara").onclick=()=>yenile(true);
+$("yenile").onclick=()=>yenile();
+$("sehir").addEventListener("keydown",e=>{if(e.key==="Enter")yenile(true);});
+$("kay").oninput=e=>{d.haritaSaat=+e.target.value; cizHarita();};
+$("harita").addEventListener("click",e=>{const g=e.target.closest(".ilce"); if(g)ilceSec(g.dataset.ad);});
+
+// yanıp sönme (500 ms)
+let baslik=document.title;
+setInterval(()=>{
+  d.yanip=!d.yanip;
+  if(d.uyari&&d.uyari.panik){ cizUyari(); document.title=d.yanip?"🚨 PANİK YAĞMUR!":baslik; } else document.title=baslik;
+  if(d.saatler.some(x=>x.p>=85))cizSaat();
+  const sa=Object.values(d.bolge);
+  if(sa.some(v=>v[d.haritaSaat]&&v[d.haritaSaat].p>=85))cizHarita();
+},500);
+
+cizHarita(); yenile(true);
+</script>
+</body>
+</html>
